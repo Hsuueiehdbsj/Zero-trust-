@@ -1,0 +1,34 @@
+{
+    "folders": [
+        {
+            "path": "."
+        }
+    ],
+    "settings": {
+        "python.defaultInterpreterPath": "C:\\Users\\isak5\\AppData\\Local\\Microsoft\\WindowsApps\\python.exe",
+        "python.terminal.activateEnvironment": true,
+        "files.exclude": {
+            "**/__pycache__": true,
+            "**/*.pyc": true
+        },
+        "editor.formatOnSave": false
+    },
+    "launch": {
+        "version": "0.2.0",
+        "configurations": [
+            {
+                "name": "Run Privacy Auditor",
+                "type": "debugpy",
+                "request": "launch",
+                "program": "${workspaceFolder}/app.py",
+                "console": "integratedTerminal",
+                "env": {
+                    "FLASK_ENV": "development",
+                    "FLASK_DEBUG": "1"
+                },
+                "jinja": true,
+                "justMyCode": true
+            }
+        ]
+    }
+}
