@@ -1,0 +1,262 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Zero-Trust Privacy Auditor</title>
+  <meta name="description"
+    content="Audit any website's privacy posture — trackers, cookies, SSL health, security headers, and clickjacking vulnerability — in seconds." />
+  <link rel="preconnect" href="https://fonts.googleapis.com" />
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin />
+  <link
+    href="https://fonts.googleapis.com/css2?family=Inter:wght@300;400;500;600;700;800&family=JetBrains+Mono:wght@400;500&display=swap"
+    rel="stylesheet" />
+  <link rel="stylesheet" href="/static/css/style.css" />
+</head>
+
+<body>
+
+  <!-- Animated background -->
+  <div class="bg-grid"></div>
+  <div class="bg-orb orb-1"></div>
+  <div class="bg-orb orb-2"></div>
+  <div class="bg-orb orb-3"></div>
+
+  <!-- Hero -->
+  <header class="hero">
+    <div class="hero-inner">
+      <div class="logo-badge">
+        <svg width="28" height="28" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+          stroke-linecap="round" stroke-linejoin="round">
+          <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+        </svg>
+        Zero-Trust
+      </div>
+      <h1>Browser Privacy Auditor</h1>
+      <p class="hero-sub">Enter any URL to reveal trackers, cookies, security headers, SSL health, and clickjacking risk
+        — all in one report.</p>
+
+      <!-- Search bar -->
+      <form class="search-form" id="auditForm">
+        <div class="search-wrap">
+          <span class="search-icon">
+            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <circle cx="11" cy="11" r="8" />
+              <line x1="21" y1="21" x2="16.65" y2="16.65" />
+            </svg>
+          </span>
+          <input type="text" id="urlInput" placeholder="e.g. https://facebook.com" autocomplete="off"
+            spellcheck="false" />
+          <button type="submit" id="auditBtn">
+            <span class="btn-text">Audit Site</span>
+            <span class="btn-icon">
+              <svg width="16" height="16" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5"
+                stroke-linecap="round" stroke-linejoin="round">
+                <line x1="5" y1="12" x2="19" y2="12" />
+                <polyline points="12 5 19 12 12 19" />
+              </svg>
+            </span>
+          </button>
+        </div>
+        <div class="quick-links">
+          Try:
+          <a href="#" class="quick-link" data-url="google.com">google.com</a>
+          <a href="#" class="quick-link" data-url="facebook.com">facebook.com</a>
+          <a href="#" class="quick-link" data-url="example.com">example.com</a>
+          <a href="#" class="quick-link" data-url="github.com">github.com</a>
+        </div>
+      </form>
+    </div>
+  </header>
+
+  <!-- Loading state -->
+  <div class="loading-screen" id="loadingScreen" hidden>
+    <div class="scanner-wrap">
+      <div class="scanner-ring"></div>
+      <div class="scanner-dot"></div>
+    </div>
+    <div class="loading-text">Scanning <span id="loadingUrl"></span></div>
+    <div class="loading-steps" id="loadingSteps">
+      <span class="step active" id="step-ssl">🔐 Checking SSL</span>
+      <span class="step" id="step-headers">🛡️ Analyzing Headers</span>
+      <span class="step" id="step-trackers">🔍 Detecting Trackers</span>
+      <span class="step" id="step-score">📊 Computing Score</span>
+    </div>
+  </div>
+
+  <!-- Error banner -->
+  <div class="error-banner" id="errorBanner" hidden>
+    <svg width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+      stroke-linecap="round" stroke-linejoin="round">
+      <circle cx="12" cy="12" r="10" />
+      <line x1="12" y1="8" x2="12" y2="12" />
+      <line x1="12" y1="16" x2="12.01" y2="16" />
+    </svg>
+    <span id="errorMessage"></span>
+  </div>
+
+  <!-- Results -->
+  <main class="results" id="results" hidden>
+
+    <!-- Target URL bar -->
+    <div class="results-header">
+      <div class="results-url" id="resultsUrl"></div>
+      <div class="results-meta" id="resultsMeta"></div>
+    </div>
+
+    <!-- Score + Overview row -->
+    <div class="overview-row">
+
+      <!-- Score gauge -->
+      <div class="card score-card" id="scoreCard">
+        <h2 class="card-title">Privacy Score</h2>
+        <div class="gauge-wrap">
+          <svg class="gauge-svg" viewBox="0 0 200 200">
+            <circle class="gauge-bg" cx="100" cy="100" r="80" />
+            <circle class="gauge-fill" id="gaugeFill" cx="100" cy="100" r="80" />
+          </svg>
+          <div class="gauge-center">
+            <div class="gauge-score" id="gaugeScore">0</div>
+            <div class="gauge-grade" id="gaugeGrade">-</div>
+            <div class="gauge-label">/ 100</div>
+          </div>
+        </div>
+        <div class="score-breakdown" id="scoreBreakdown"></div>
+      </div>
+
+      <!-- Quick summary -->
+      <div class="summary-col">
+        <!-- SSL Card -->
+        <div class="card mini-card" id="sslCard">
+          <div class="mini-icon ssl-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <rect x="3" y="11" width="18" height="11" rx="2" ry="2" />
+              <path d="M7 11V7a5 5 0 0 1 10 0v4" />
+            </svg>
+          </div>
+          <div class="mini-info">
+            <div class="mini-label">SSL / HTTPS</div>
+            <div class="mini-value" id="sslValue">—</div>
+            <div class="mini-sub" id="sslSub">—</div>
+          </div>
+          <div class="mini-badge" id="sslBadge"></div>
+        </div>
+
+        <!-- Clickjacking Card -->
+        <div class="card mini-card" id="clickjackCard">
+          <div class="mini-icon clickjack-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+              <circle cx="12" cy="12" r="3" />
+            </svg>
+          </div>
+          <div class="mini-info">
+            <div class="mini-label">Clickjacking</div>
+            <div class="mini-value" id="clickjackValue">—</div>
+            <div class="mini-sub" id="clickjackSub">—</div>
+          </div>
+          <div class="mini-badge" id="clickjackBadge"></div>
+        </div>
+
+        <!-- Trackers mini -->
+        <div class="card mini-card" id="trackerMini">
+          <div class="mini-icon tracker-icon">
+            <svg width="22" height="22" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2"
+              stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+          </div>
+          <div class="mini-info">
+            <div class="mini-label">Trackers Detected</div>
+            <div class="mini-value" id="trackerMiniValue">—</div>
+            <div class="mini-sub" id="trackerMiniSub">—</div>
+          </div>
+          <div class="mini-badge" id="trackerMiniBadge"></div>
+        </div>
+      </div>
+    </div>
+
+    <!-- Detailed panels row -->
+    <div class="detail-row">
+
+      <!-- Security Headers -->
+      <div class="card detail-card" id="headersCard">
+        <div class="card-head">
+          <h2 class="card-title">
+            <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <path d="M12 22s8-4 8-10V5l-8-3-8 3v7c0 6 8 10 8 10z" />
+            </svg>
+            Security Headers
+          </h2>
+          <div class="card-score" id="headerScore">—</div>
+        </div>
+        <div class="header-list" id="headerList"></div>
+      </div>
+
+      <!-- Trackers & Cookies -->
+      <div class="card detail-card" id="trackersCard">
+        <div class="card-head">
+          <h2 class="card-title">
+            <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+              stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+              <polyline points="22 12 18 12 15 21 9 3 6 12 2 12" />
+            </svg>
+            Trackers &amp; Cookies
+          </h2>
+          <div class="card-badge-counts" id="tcCounts"></div>
+        </div>
+
+        <div class="tc-tabs">
+          <button class="tc-tab active" id="tabTrackers" onclick="switchTab('trackers')">Trackers</button>
+          <button class="tc-tab" id="tabCookies" onclick="switchTab('cookies')">Cookies</button>
+        </div>
+
+        <div id="panelTrackers" class="tc-panel">
+          <div class="tracker-list" id="trackerList"></div>
+        </div>
+        <div id="panelCookies" class="tc-panel" hidden>
+          <div class="cookie-list" id="cookieList"></div>
+        </div>
+      </div>
+
+    </div>
+
+    <!-- Clickjacking detail -->
+    <div class="card clickjack-detail-card" id="clickjackDetail">
+      <div class="card-head">
+        <h2 class="card-title">
+          <svg class="card-icon" width="18" height="18" viewBox="0 0 24 24" fill="none" stroke="currentColor"
+            stroke-width="2" stroke-linecap="round" stroke-linejoin="round">
+            <path d="M1 12s4-8 11-8 11 8 11 8-4 8-11 8-11-8-11-8z" />
+            <circle cx="12" cy="12" r="3" />
+          </svg>
+          Clickjacking Analysis
+        </h2>
+        <div class="mini-badge" id="clickjackDetailBadge"></div>
+      </div>
+      <div class="clickjack-details" id="clickjackDetails"></div>
+    </div>
+
+    <!-- Re-scan button -->
+    <div class="rescan-row">
+      <button class="rescan-btn"
+        onclick="document.getElementById('urlInput').focus(); window.scrollTo({top:0,behavior:'smooth'})">
+        ↑ Audit Another URL
+      </button>
+    </div>
+
+  </main>
+
+  <footer class="footer">
+    Built with Flask · BeautifulSoup · Requests &nbsp;|&nbsp; Zero-Trust Privacy Auditor
+  </footer>
+
+  <script src="/static/js/app.js"></script>
+</body>
+
+</html>
